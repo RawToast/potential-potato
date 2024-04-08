@@ -29,7 +29,8 @@ object Dependencies {
 
   object T { // Test dependencies
     // Scala
-    val munit = "org.scalameta" %% "munit" % V.munit % Test
+    val munit        = "org.scalameta" %% "munit"         % V.munit % Test
+    val circeLiteral = "io.circe"      %% "circe-literal" % V.circe % Test
   }
 
   object C { // Compiler plugins
