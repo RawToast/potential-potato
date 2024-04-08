@@ -2,10 +2,11 @@ package prices.services
 
 import java.time.ZonedDateTime
 
-import cats.effect.IO
+import cats.effect.{ IO, Ref }
 import cats.implicits._
 import munit._
 
+import prices.cache.{ CachedPrice, SmartCloudPricingCache }
 import prices.client.{ InstancePricing, InstancePricingClient }
 import prices.data.{ InstanceKind, InstancePrice }
 import prices.routes.protocol.InstancePriceResponse
@@ -58,6 +59,44 @@ class SmartcloudInstancePriceServiceSuite extends FunSuite {
 
     val expected = Left(Exception.RateLimitExceeded)
     assert(result == expected)
+  }
+
+  test("getInstancePricing returns data from cache uses cached data if it is still live") {
+    val stubClient = makeStubClient()
+    val now        = System.currentTimeMillis()
+    val cacheRef   = Ref.unsafe[IO, Map[InstanceKind, CachedPrice]](Map(instanceKindFail -> CachedPrice(InstancePrice(1.337), now)))
+    val cache      = SmartCloudPricingCache.make[IO](SmartCloudPricingCache.Config(5000L), cacheRef)
+
+    val service = SmartcloudInstancePriceService.makeWithCache(stubClient, cache)
+
+    val resultIO = service.getInstancePricing(instanceKindFail)
+
+    val result = resultIO.unsafeRunSync()
+
+    val expected = InstancePriceResponse(instanceKindFail, InstancePrice(1.337)).some.asRight[Error]
+    assert(result == expected)
+  }
+
+  test("getInstancePricing calls the API and updates the cache when the cache is stale") {
+    val instanceKind   = InstanceKind("sc2-medium")
+    val stubClient     = makeStubClient()
+    val ttl            = 1000L
+    val cacheTimestamp = System.currentTimeMillis() - ttl
+    val cacheRef       = Ref.unsafe[IO, Map[InstanceKind, CachedPrice]](Map(instanceKind -> CachedPrice(InstancePrice(0.1), cacheTimestamp)))
+    val cache          = SmartCloudPricingCache.make[IO](SmartCloudPricingCache.Config(ttl), cacheRef)
+
+    val service = SmartcloudInstancePriceService.makeWithCache(stubClient, cache)
+
+    val resultIO = service.getInstancePricing(instanceKind)
+
+    val result = resultIO.unsafeRunSync()
+
+    val expected = InstancePriceResponse(instanceKind, InstancePrice(1.0)).some.asRight[Error]
+    assert(result == expected)
+
+    val updatedCache = cacheRef.get.unsafeRunSync()
+    assert(updatedCache(instanceKind).price == InstancePrice(1.0))
+    assert(updatedCache(instanceKind).timestamp > cacheTimestamp)
   }
 }
 

@@ -6,7 +6,8 @@ import pureconfig.generic.auto._
 
 case class Config(
     app: Config.AppConfig,
-    smartcloud: Config.SmartcloudConfig
+    smartcloud: Config.SmartcloudConfig,
+    cache: Config.CacheConfig
 )
 
 object Config {
@@ -19,6 +20,10 @@ object Config {
   case class SmartcloudConfig(
       baseUri: String,
       token: String
+  )
+
+  case class CacheConfig(
+      ttl: Long
   )
 
   def load[F[_]: Sync]: F[Config] =
