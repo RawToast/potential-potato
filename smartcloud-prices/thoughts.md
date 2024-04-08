@@ -32,3 +32,11 @@
 
   - SBT assembly should build a docker image without much work
   - A compose setup would then be rather simple to implement
+
+## Assumptions
+
+- Avoid adding too many additional dependencies
+  - Only added Ember Client alongside circe literal for testing
+- As mentioned above, restricting the call limit to avoid hitting the rate limit is sufficient
+- I should avoid adding additional services
+  - Redis would be better for holding the cache (this would avoid different services holding different cached values)

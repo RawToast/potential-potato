@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  smartcloud-prices:
+    build: smartcloud-prices
+    command: java -Dconfig.resource=application.compose.conf -jar smartcloud-prices.jar 
+    restart: always
+    depends_on:
+      - smartcloud
+    ports:
+      - 8080:8080
+  smartcloud:
+    image: smartpayco/smartcloud:latest
+    hostname: smartcloud
+    restart: always
+    ports:
+      - 9999

@@ -2,6 +2,7 @@ import Dependencies._
 
 lazy val root = (project in file("."))
   .settings(
+    name := "smartcloud-prices",
     scalaVersion := "2.13.13",
     scalacOptions ~= (_.filterNot(Set("-Xfatal-warnings"))),
     libraryDependencies ++= Seq(
@@ -17,5 +18,11 @@ lazy val root = (project in file("."))
       C.betterMonadicFor,
       C.kindProjector
     ),
-    testFrameworks += new TestFramework("munit.Framework")
+    testFrameworks += new TestFramework("munit.Framework"),
+    assembly / mainClass := Some("prices.Main"),
+    assembly / assemblyJarName := "smartcloud-prices.jar",
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", _*) => MergeStrategy.discard
+      case _                        => MergeStrategy.first
+    }
   )
