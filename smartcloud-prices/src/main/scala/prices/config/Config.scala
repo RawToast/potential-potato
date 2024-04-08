@@ -1,7 +1,6 @@
 package prices.config
 
 import cats.effect.kernel.Sync
-
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 

@@ -1,7 +1,7 @@
 package prices.services
 
-import cats.implicits._
 import cats.effect._
+import cats.implicits._
 import org.http4s._
 import org.http4s.circe._
 
