@@ -1,10 +1,14 @@
 package prices
 
+import scala.concurrent.duration._
+
 import cats.effect._
 import cats.implicits._
 import com.comcast.ip4s._
 import fs2.Stream
+import org.http4s.Status
 import org.http4s.Uri
+import org.http4s.client.middleware.{ Retry, RetryPolicy }
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.Logger
@@ -30,10 +34,21 @@ object Server {
       token = config.smartcloud.token
     )
 
+    val retryPolicy = RetryPolicy[IO](
+      (_ => Some(1.milli)),
+      retriable = (_, response) =>
+        response match {
+          case Right(response) if response.status == Status.InternalServerError => true
+          case Right(_)                                                         => false
+          case Left(_)                                                          => true
+        }
+    )
+
     val serverResource = for {
       emberClient <- EmberClientBuilder.default[IO].build
-      kindClient           = SmartcloudInstanceKindClient.make[IO](emberClient, kindConfig)
-      pricingClient        = SmartcloudInstancePricingClient.make[IO](emberClient, pricingConfig)
+      clientWithRetry      = Retry(retryPolicy)(emberClient)
+      kindClient           = SmartcloudInstanceKindClient.make[IO](clientWithRetry, kindConfig)
+      pricingClient        = SmartcloudInstancePricingClient.make[IO](clientWithRetry, pricingConfig)
       instanceKindService  = SmartcloudInstanceKindService.make[IO](kindClient)
       instancePriceService = SmartcloudInstancePriceService.make[IO](pricingClient)
       priceRoutes          = InstancePriceRoutes[IO](instancePriceService).routes
