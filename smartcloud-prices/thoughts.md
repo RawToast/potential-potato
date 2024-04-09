@@ -26,7 +26,7 @@
 
 - Add another client for the 'Pricing' part. This needs an auth header and to handle RateLimit (the docs say the limit only applies to this call)
 - Same steps, test drive an implementation and wire it in.
-- Add cacheing to the Pricing client, this can just be an Map held in memory. Probably just start with a mutable map, test that and then use Ref
+- Add cacheing to the Pricing client, this can just be an Map held in memory. Probably just start with a mutable map, test that and then replace with Ref
 
 - Add an easy way to run things
 
@@ -37,6 +37,19 @@
 
 - Avoid adding too many additional dependencies
   - Only added Ember Client alongside circe literal for testing
-- As mentioned above, restricting the call limit to avoid hitting the rate limit is sufficient
-- I should avoid adding additional services
-  - Redis would be better for holding the cache (this would avoid different services holding different cached values)
+- Updating Scala/SBT is okay! 
+- As mentioned above, restricting the call to the smartcloud api to avoid hitting the rate limit is sufficient
+- I should avoid adding additional services (such as a Redis cache)
+- A simple retry should suffice for handling the random errors
+
+## Design
+
+- Separate client and service for both calls
+  - The 'get all' request has different constraints (no rate limit) and doesn't need the cache
+  - Simpler to test, update, and reason about
+- Extacted the client/API call from the service into a separate class
+  - Again simplicity, separation of concerns, and ease of testing
+- Using Either for errors rather than Monad Error
+  - I've not used Monad Error in a while, plus I prefer to be explicit.
+  - Without introducting Tofu I believe Monad Error doesn't specify the actual error cases
+  
